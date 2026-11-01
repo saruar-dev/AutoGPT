@@ -408,7 +408,14 @@ async def execute_node(
         _input_data.user_id = user_id
         input_data = _input_data.model_dump()
     elif isinstance(node_block, MCPToolBlock):
-        _mcp_data = MCPToolBlock.Input(**node.input_default)
+        _mcp_input = dict(node.input_default)
+        # Read from the per-node masks, not input_data: tool arguments share
+        # input_data's namespace and a tool may declare its own `credentials`.
+        if run_credentials := ((nodes_input_masks or {}).get(node_id) or {}).get(
+            "credentials"
+        ):
+            _mcp_input["credentials"] = run_credentials
+        _mcp_data = MCPToolBlock.Input(**_mcp_input)
         # Dynamic tool fields are flattened to top-level by validate_exec
         # (via get_input_defaults). Collect them back into tool_arguments.
         tool_schema = _mcp_data.tool_input_schema

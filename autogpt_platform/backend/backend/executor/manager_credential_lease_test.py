@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from pydantic import SecretStr
 
+from backend.blocks.mcp.block import MCPToolBlock
 from backend.copilot.rate_limit import UserPaywalledError
 from backend.data.execution import ExecutionContext, NodeExecutionEntry
 from backend.data.model import (
@@ -414,6 +415,50 @@ async def test_credential_metadata_cannot_hide_authoritative_codex_provider():
     assert "credentials" not in captured
 
 
+@pytest.mark.asyncio
+async def test_mcp_node_takes_the_run_credentials_from_its_input_mask():
+    credentials = OAuth2Credentials(
+        id="run-cred",
+        provider="mcp",
+        access_token=SecretStr("run-token"),
+        scopes=[],
+        metadata={"mcp_server_url": "https://mcp.example.com/mcp"},
+    )
+    lease = MagicMock(credentials=credentials)
+    lease.release = AsyncMock()
+    manager = MagicMock()
+    manager.acquire_lease = AsyncMock(return_value=lease)
+    block = MCPToolBlock()
+    node = _node(block)
+    node.input_default = {
+        "server_url": "https://mcp.example.com/mcp",
+        "selected_tool": "a_tool",
+        "tool_input_schema": {
+            "type": "object",
+            "properties": {"credentials": {"type": "string"}},
+        },
+        "credentials": {"id": "saved-cred", "provider": "mcp", "type": "oauth2"},
+    }
+    run_credentials = {"id": "run-cred", "provider": "mcp", "type": "oauth2"}
+
+    with patch.object(block, "_call_mcp_tool", new_callable=AsyncMock) as call_tool:
+        call_tool.return_value = "ok"
+        outputs = [
+            item
+            async for item in execute_node(
+                node,
+                _entry({"credentials": "a tool argument"}),
+                SimpleNamespace(creds_manager=manager),
+                nodes_input_masks={"node-1": {"credentials": run_credentials}},
+            )
+        ]
+
+    assert outputs == [("result", "ok")]
+    manager.acquire_lease.assert_awaited_once_with("user-1", "run-cred")
+    assert call_tool.await_args is not None
+    assert call_tool.await_args.kwargs["authorization"] == "Bearer run-token"
+
+
 def _block_with_credentials(
     credential_fields: dict[str, type[CodexCredentialsInput]],
     captured: dict[str, object],
@@ -452,7 +497,7 @@ def _block_with_credentials(
     return block
 
 
-def _node(block: MagicMock) -> MagicMock:
+def _node(block: MagicMock | MCPToolBlock) -> MagicMock:
     node = MagicMock()
     node.block = block
     node.input_default = {}
