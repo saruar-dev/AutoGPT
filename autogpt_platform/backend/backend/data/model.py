@@ -422,7 +422,11 @@ class HostScopedCredentials(_BaseCredentials):
         return self._extract_headers(headers)
 
     def get_headers_dict(self) -> dict[str, str]:
-        """Get headers with secret values extracted."""
+        """Get headers with secret values extracted.
+
+        A caller sending them also passes their names to
+        ``Requests(sensitive_headers=...)``, so a cross-origin redirect drops them.
+        """
         return self._extract_headers(self.headers)
 
     def auth_header(self) -> str:
