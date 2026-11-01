@@ -1310,7 +1310,9 @@ async def webhook_ingress_generic(
     # Only after the signature: loading can refresh the owner's OAuth token.
     try:
         credentials = (
-            await creds_manager.get(user_id, webhook.credentials_id)
+            await creds_manager.get(
+                user_id, webhook.credentials_id, allow_sdk_default=True
+            )
             if webhook.credentials_id
             else None
         )
@@ -1379,7 +1381,7 @@ async def webhook_ping(
     webhook_manager = get_webhook_manager(webhook.provider)
 
     credentials = (
-        await creds_manager.get(user_id, webhook.credentials_id)
+        await creds_manager.get(user_id, webhook.credentials_id, allow_sdk_default=True)
         if webhook.credentials_id
         else None
     )
@@ -1902,7 +1904,9 @@ async def _cleanup_orphaned_webhook_for_graph(
                         ProviderName(webhook.provider)
                     )
                     credentials = (
-                        await creds_manager.get(user_id, webhook.credentials_id)
+                        await creds_manager.get(
+                            user_id, webhook.credentials_id, allow_sdk_default=True
+                        )
                         if webhook.credentials_id
                         else None
                     )

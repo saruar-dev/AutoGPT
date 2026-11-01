@@ -340,6 +340,58 @@ def is_sdk_default(cred_id: str) -> bool:
     return cred_id.endswith(SDK_DEFAULT_SUFFIX)
 
 
+# An SDK default credential holds the operator's own key. Blocks may run on one
+# only for the providers listed here: stateless, metered APIs where the key keeps
+# no objects that belong to a user. Graph save, graph validation and credential
+# lookup refuse every other "{provider}-default".
+RUNNABLE_SDK_DEFAULT_PROVIDERS: frozenset[str] = frozenset(
+    {
+        "anysearch",
+        "bannerbear",
+        "dataforb2b",
+        "dataforseo",
+        "firecrawl",
+        "parallel",
+        "stagehand",
+        "tavily",
+        "wolfram",
+    }
+)
+
+
+def is_refused_sdk_default(cred_id: str) -> bool:
+    if not is_sdk_default(cred_id):
+        return False
+    return (
+        cred_id.removesuffix(SDK_DEFAULT_SUFFIX) not in RUNNABLE_SDK_DEFAULT_PROVIDERS
+    )
+
+
+def sdk_default_refused_message(cred_id: str) -> str:
+    provider = provider_label(cred_id.removesuffix(SDK_DEFAULT_SUFFIX))
+    return (
+        f"The platform's shared {provider} key can't be used here. "
+        f"Connect your own {provider} credentials and select them instead."
+    )
+
+
+def provider_label(provider: str) -> str:
+    """The name people know a provider by, for messages about its shared key."""
+    return _PROVIDER_LABELS.get(provider, provider)
+
+
+_PROVIDER_LABELS: dict[str, str] = {
+    "agent_mail": "AgentMail",
+    "airtable": "Airtable",
+    "allquiet": "All Quiet",
+    "baas": "Meeting BaaS",
+    "exa": "Exa",
+    "linear": "Linear",
+    "rmfg": "RMFG",
+    "smartlead": "SmartLead",
+}
+
+
 class _BaseCredentials(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     provider: str
