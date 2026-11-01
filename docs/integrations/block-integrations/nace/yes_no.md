@@ -25,7 +25,7 @@ On failure, `response` has type `str | None`, and `input_tokens` and `output_tok
 | images | Up to 8 PNG, JPEG or WebP images, each a data URL, an http(s) URL or a workspace file. Refer to them in the question as 'Image 1', 'Image 2' in list order. | List[str (file)] | No |
 | question | Plain-language question answerable yes or no. | str | Yes |
 | data | Value forwarded unchanged on yes, no, or unsure. | Data | No |
-| min_confidence | Emit unsure when Drex Max's confidence is below this threshold. | float | No |
+| min_confidence | Emit unsure when Drex Max's confidence is below this threshold (0 to 1). | float | No |
 
 ### Outputs
 

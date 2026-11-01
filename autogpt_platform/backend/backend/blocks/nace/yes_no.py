@@ -22,7 +22,7 @@ class NaceYesNoBlock(DrexBlockBase):
             description="Value forwarded unchanged on yes, no, or unsure.",
         )
         min_confidence: float = SchemaField(
-            description="Emit unsure when Drex Max's confidence is below this threshold.",
+            description="Emit unsure when Drex Max's confidence is below this threshold (0 to 1).",
             default=0.0,
             ge=0.0,
             le=1.0,

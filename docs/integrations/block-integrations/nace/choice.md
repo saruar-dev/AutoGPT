@@ -12,7 +12,7 @@ Make a typed choice with Drex Max about text and up to 8 images. Describe what q
 <!-- MANUAL: how_it_works -->
 The block sends one `choice` question to nace's System One API with the `options` as its criteria object: each option name maps to a plain-language description of what qualifies. Drex Max returns the winning option, a probability for every option and a confidence, which the block emits as `choice`, `probabilities` and `confidence`.
 
-Put the evidence in `state` and, optionally, up to 8 PNG, JPEG or WebP `images`; refer to them in the question as "Image 1", "Image 2" in list order. The shared outputs expose the exact request and response for auditing. On failure the block emits an error and no decision pins.
+Put the evidence in `state` and, optionally, up to 8 PNG, JPEG or WebP `images`; refer to them in the question as "Image 1", "Image 2" in list order. The shared outputs expose the request representation (inline image data is represented by its MIME type and size) and the response for auditing. On failure the block emits an error and no decision pins.
 
 On failure, `response` has type `str | None`, and `input_tokens` and `output_tokens` have type `int | None`. Missing values are `None`; no decision output is emitted.
 <!-- END MANUAL -->
