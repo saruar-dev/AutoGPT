@@ -1858,6 +1858,16 @@ async def get_graph_version_owners(graph_id: str) -> set[tuple[str, str | None]]
     return {(version.userId, version.organizationId) for version in versions}
 
 
+async def is_graph_version_owner(graph_id: str, version: int, user_id: str) -> bool:
+    """Whether *user_id* saved this version of the graph."""
+    return (
+        await AgentGraph.prisma().count(
+            where={"id": graph_id, "version": version, "userId": user_id}
+        )
+        > 0
+    )
+
+
 async def assert_graph_within(
     graph_id: str, user_id: str, organization_ids: Collection[str | None]
 ) -> None:

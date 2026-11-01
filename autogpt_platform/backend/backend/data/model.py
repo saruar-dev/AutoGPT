@@ -41,6 +41,7 @@ from pydantic_core import (
 )
 from typing_extensions import TypedDict
 
+from backend.data.credential_scope import ServerTarget, scope_rule
 from backend.data.onboarding_steps import OnboardingStep
 from backend.data.onboarding_wizard import OnboardingWizardProgress
 from backend.integrations.providers import ProviderName
@@ -448,12 +449,28 @@ class UserPasswordCredentials(_BaseCredentials):
     type: Literal["user_password"] = "user_password"
     username: SecretStr
     password: SecretStr
+    scope: str | None = Field(
+        default=None,
+        description="What this login may be used for, as a URI whose meaning "
+        "depends on the provider: smtp://host[:port] for SMTP, or the engine's "
+        "scheme (postgresql://, mysql://, mssql://) and host[:port] for a "
+        "database. None for a login saved before scopes existed.",
+    )
 
     def auth_header(self) -> str:
         # Converting the string to bytes using encode()
         # Base64 encoding it with base64.b64encode()
         # Converting the resulting bytes back to a string with decode()
         return f"Basic {base64.b64encode(f'{self.username.get_secret_value()}:{self.password.get_secret_value()}'.encode()).decode()}"
+
+    def matches_scope(self, target: ServerTarget) -> bool:
+        """Whether this login may be sent to `target`, the exact server a block
+        is about to connect to, by the rule of the login's provider. A login with
+        no scope, or for a provider with no scope rule, matches nothing."""
+        rule = scope_rule(self.provider)
+        if self.scope is None or rule is None:
+            return False
+        return rule.matches(self.scope, target)
 
 
 class HostScopedCredentials(_BaseCredentials):

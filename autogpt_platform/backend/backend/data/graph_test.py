@@ -50,6 +50,7 @@ from backend.data.graph import (
     get_store_listed_graphs,
     graph_in_library_filter,
     graph_owner_id,
+    is_graph_version_owner,
     make_graph_model,
     migrate_llm_models,
     validate_graph_execution_permissions,
@@ -382,6 +383,28 @@ def test_stripped_for_export_drops_declared_credentials_field():
     assert "credentials" not in stripped.input_default
     assert stripped.input_default["code"] == "print('hi')"
     assert stripped.webhook_id is None
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_is_graph_version_owner(server: SpinTestServer):
+    """A graph version is owned by the user who saved it, by no one else, and a
+    missing version is owned by no one."""
+    graph = Graph(
+        name="Owned graph",
+        description="",
+        nodes=[Node(block_id=StoreValueBlock().id, input_default={})],
+        links=[],
+    )
+    created = await server.agent_server.test_create_graph(
+        CreateGraph(graph=graph), DEFAULT_USER_ID
+    )
+    other_user = await create_test_user(alt_user=True)
+
+    assert await is_graph_version_owner(created.id, created.version, DEFAULT_USER_ID)
+    assert not await is_graph_version_owner(created.id, created.version, other_user.id)
+    assert not await is_graph_version_owner(
+        created.id, created.version + 1, DEFAULT_USER_ID
+    )
 
 
 @pytest.mark.asyncio(loop_scope="session")
